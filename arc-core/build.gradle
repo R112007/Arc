@@ -28,6 +28,14 @@ jnigen{
         cppIncludes = ["*.cpp", "soloud/src/core/**", "soloud/src/audiosource/wav/**", "soloud/src/filter/**"]
         cIncludes = ["*.c", "soloud/src/core/**", "soloud/src/audiosource/wav/**", "soloud/src/filter/**"]
     }
+    add(Linux, x64, ARM){
+        cppIncludes += ["soloud/src/backend/miniaudio/*.cpp"]
+        cppFlags = "-DWITH_MINIAUDIO " + cppFlags.replace("x86_64", "arm64")
+        cFlags = cFlags.replace("x86_64", "arm64")
+        libraries += " -lpthread -lrt -lm -ldl"
+        linkerFlags = linkerFlags.replace("x86_64", "arm64")
+    }
+/*
     add(Linux, x64){
         cppIncludes += ["soloud/src/backend/miniaudio/*.cpp"]
         cppFlags = "-DWITH_MINIAUDIO " + cppFlags
@@ -63,6 +71,7 @@ jnigen{
         cppIncludes += ["soloud/src/backend/coreaudio/*.cpp", "iosgl/**"]
         cppFlags = "-stdlib=libc++ -std=c++11 -DWITH_COREAUDIO " + cppFlags
     }
+*/
 }
 
 task fixWrap{
@@ -77,6 +86,11 @@ task fixWrap{
         if(f.exists()){
             f.text = f.text.replace("-Wl,-wrap,memcpy", "-Wl,-wrap,memcpy,-wrap,pow,-wrap,powf,-wrap,log,-wrap,logf,-wrap,exp,-wrap,expf,-wrap,clock_gettime")
         }
+        f = file("$rootDir/arc-core/jni/build-linuxarm64.xml");
+        if(f.exists()){
+           f.text = f.text.replace("aarch64-linux-gnu-","")
+        }
+
     }
 }
 
@@ -98,12 +112,12 @@ task preJni{
         if(!file("csrc/stb_image.h").exists()){
             println "Fetching stb_image source..."
             //currently locked to a specific commit
-            "curl -o $rootDir/arc-core/csrc/stb_image.h https://raw.githubusercontent.com/nothings/stb/e140649ccf40818781b7e408f6228a486f6d254b/stb_image.h".execute().waitFor()
+            "curl -o $rootDir/arc-core/csrc/stb_image.h https://github.tbedu.top/https://raw.githubusercontent.com/nothings/stb/e140649ccf40818781b7e408f6228a486f6d254b/stb_image.h".execute().waitFor()
         }
 
         if(!file("csrc/soloud").exists()){
             println "Fetching soloud source..."
-            "git clone --depth 1 --branch v0.11 https://github.com/Anuken/soloud.git $rootDir/arc-core/csrc/soloud".execute().waitFor()
+            "git clone --depth 1 --branch v0.11 https://github.tbedu.top/https://github.com/Anuken/soloud.git $rootDir/arc-core/csrc/soloud".execute().waitFor()
         }
 
         copy{
@@ -118,7 +132,7 @@ task preJni{
 task postJni{
     doLast{
         copy{
-            from "libs/linux64", "libs/windows32", "libs/windows64", "libs/macosx64"
+            from "libs/linux64", "libs/windows32", "libs/windows64", "libs/macosx64","libs/linuxarm64"
             into "../natives/natives-desktop/libs"
             include "**"
         }
